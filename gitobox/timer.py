@@ -12,7 +12,7 @@ class ResettableTimer(object):
     start(), returning False immediately if that's impossible. It will be
     released when the timer triggers or is canceled.
     """
-    IDLE, RESET, PRIMED = irange(3)
+    IDLE, RESET, PRIMED, EXEC = irange(4)
 
     def __init__(self, timeout, function, args=[], kwargs={}, lock=None):
         self.thread = Thread(target=self._run)
@@ -76,7 +76,13 @@ class ResettableTimer(object):
                     self.status = ResettableTimer.PRIMED
                 # Still PRIMED: we timed out without interruption, call back
                 elif self.status == ResettableTimer.PRIMED:
+                    self.status = ResettableTimer.EXEC
                     self.function(*self.args, **self.kwargs)
-                    self.status = ResettableTimer.IDLE
-                    if self.lock is not None:
-                        self.lock.release()
+                    # if start is called during execution of the function: PRIMED
+                    if self.status == ResettableTimer.RESET:
+                        self.status = ResettableTimer.PRIMED
+                    # nothing happened during the function call: we can safely release the lock and IDLE
+                    if self.status == ResettableTimer.EXEC:
+                        self.status = ResettableTimer.IDLE
+                        if self.lock is not None:
+                            self.lock.release()
