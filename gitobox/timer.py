@@ -82,7 +82,7 @@ class ResettableTimer(object):
                     if self.status == ResettableTimer.RESET:
                         self.status = ResettableTimer.PRIMED
                     # nothing happened during the function call: we can safely release the lock and IDLE
-                    if self.status == ResettableTimer.EXEC:
+                    elif self.status == ResettableTimer.EXEC:
                         self.status = ResettableTimer.IDLE
                         if self.lock is not None:
                             self.lock.release()
